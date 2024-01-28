@@ -1,0 +1,31 @@
+version: "3.8"
+services:
+  tts: # speech to text inference server.
+    image: coqui-ai-tts
+    build:
+      context: docker/coqui-tts
+      dockerfile: coqui-tts.Dockerfile
+    restart: unless-stopped
+    volumes:
+      - model_data:/root/.local/share/tts
+    ports:
+      - "5002:5002"
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: 1
+              capabilities: [gpu]
+
+  redis:
+    image: redis:6.2-alpine
+    restart: unless-stopped
+    ports:
+      - '6380:6379'
+    volumes:
+      - cache:/data
+
+volumes:
+  model_data:
+  cache:

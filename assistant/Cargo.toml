@@ -1,0 +1,28 @@
+[package]
+name = "assistant"
+version = "0.1.0"
+edition = "2021"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+anyhow = "1.0.79"
+bytes = "1.5.0"
+clap = { version = "4.4.18", features = ["derive", "env"] }
+coqui-stt = "1.0.2"
+cpal = "0.15.2"
+hound = "3.5.1"
+oneshot = "0.1.6"
+openai = "1.0.0-alpha.13"
+redis = { version = "0.24.0", features = ["tokio-comp"] }
+reqwest = "0.11.23"
+thiserror = "1.0.56"
+tokio = { version = "1.35.1", features = ["full"] }
+
+[features]
+default = []
+
+
+[[bin]]
+path = "src/bin/feedback.rs"
+name = "feedback"
