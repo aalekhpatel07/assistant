@@ -1,4 +1,4 @@
-use cpal::StreamConfig;
+
 use reqwest::Url;
 use std::time::Duration;
 use bytes::Bytes;
@@ -15,6 +15,12 @@ pub struct TextToSpeechClient {
     cache: Option<Cache>
 }
 
+
+impl Default for TextToSpeechClient {
+    fn default() -> Self {
+        Self::new()
+    }
+}
 
 impl TextToSpeechClient {
     pub fn new() -> Self {

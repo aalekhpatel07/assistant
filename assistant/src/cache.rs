@@ -6,7 +6,7 @@ pub struct Cache {
     client: redis::Client
 }
 
-const SPEECH_PREFIX: &'static str = "tts:";
+const SPEECH_PREFIX: &str = "tts:";
 const SPEECH_TO_TEXT_EXPIRY: u64 = 60 * 60 * 24 * 7;
 
 
@@ -23,7 +23,7 @@ impl Cache {
 
     fn serialize_into_bytes(contents: &[i16]) -> impl Iterator<Item=u8> + '_ {
         contents
-        .into_iter()
+        .iter()
         .flat_map(|v| v.to_le_bytes())
     }
     fn deserialize_from_bytes(contents: &[u8]) -> impl Iterator<Item=i16> + '_ {
@@ -38,7 +38,7 @@ impl Cache {
         let key = format!("{}{}", SPEECH_PREFIX, text).as_bytes().to_owned();
         let mut conn = self.client.get_async_connection().await?;
         let compressed: Vec<u8> = Self::serialize_into_bytes(contents).collect();
-        let _: () = conn.set_ex(key, compressed, SPEECH_TO_TEXT_EXPIRY).await?;
+        conn.set_ex(key, compressed, SPEECH_TO_TEXT_EXPIRY).await?;
 
         Ok(())
     }

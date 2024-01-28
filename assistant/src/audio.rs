@@ -1,9 +1,9 @@
-use std::io::{BufReader, BufWriter, Cursor};
+use std::io::{Cursor};
 
-use bytes::{buf, Buf};
-use cpal::{traits::{HostTrait, DeviceTrait, StreamTrait}, SampleRate, SizedSample};
-use hound;
-use tokio::sync::oneshot::error::TryRecvError;
+
+use cpal::{traits::{HostTrait, DeviceTrait, StreamTrait}, SizedSample};
+
+
 use crate::errors::AssistantError;
 
 
@@ -34,7 +34,7 @@ where
 {
 
     let host = cpal::default_host();
-    let device = host.default_input_device().ok_or_else(|| cpal::StreamError::DeviceNotAvailable)?;
+    let device = host.default_input_device().ok_or(cpal::StreamError::DeviceNotAvailable)?;
     let config = config.unwrap_or_else(|| device.default_input_config().expect("failed to get default input config").into());
 
     let on_input_data = move |data: &[T], _info: &cpal::InputCallbackInfo| {
@@ -74,7 +74,7 @@ where
 {
 
     let host = cpal::default_host();
-    let device = host.default_output_device().ok_or_else(|| cpal::StreamError::DeviceNotAvailable)?;
+    let device = host.default_output_device().ok_or(cpal::StreamError::DeviceNotAvailable)?;
 
     let config = config.unwrap_or_else(|| device.default_output_config().expect("failed to get default output config").into());
     println!("speaker config: {:#?}", config);

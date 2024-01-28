@@ -1,5 +1,5 @@
 
-use tokio;
+
 
 #[cfg(test)]
 mod tests {
@@ -47,11 +47,4 @@ mod tests {
         _ = speak_until_signal(rx, stop_speaking_rx, Some(config)).await;
 
     }
-}
-
-
-
-#[tokio::main]
-pub async fn main() {
-
 }
