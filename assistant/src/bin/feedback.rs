@@ -1,8 +1,7 @@
+use assistant::{listen_until_signal, speak_until_signal};
 use std::time::Duration;
 use tokio::sync::mpsc::unbounded_channel;
 use tokio::sync::oneshot::channel;
-use assistant::{listen_until_signal, speak_until_signal};
-
 
 #[tokio::main]
 pub async fn main() {

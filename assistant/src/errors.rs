@@ -1,6 +1,5 @@
 use thiserror::Error;
 
-
 #[derive(Debug, Error)]
 pub enum AssistantError {
     NoInputDeviceAvailable(#[from] cpal::StreamError),

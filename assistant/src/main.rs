@@ -1,17 +1,13 @@
-
-
-
 #[cfg(test)]
 mod tests {
 
-    use assistant::{speak_until_signal, tts, cache::Cache};
+    use assistant::{cache::Cache, speak_until_signal, tts};
     use std::time::Duration;
 
     #[tokio::test]
     pub async fn test_client() {
         let cache = Cache::open("redis://localhost:6380").unwrap();
-        let client = 
-            tts::TextToSpeechClient::new()
+        let client = tts::TextToSpeechClient::new()
             .with_uri("http://localhost:5002")
             .unwrap()
             .with_cache(cache);
@@ -22,7 +18,7 @@ mod tests {
         let config: cpal::StreamConfig = cpal::StreamConfig {
             buffer_size: cpal::BufferSize::Default,
             channels: 1,
-            sample_rate: cpal::SampleRate(22050)
+            sample_rate: cpal::SampleRate(22050),
         };
 
         let text = "hello how's it going?";
@@ -45,6 +41,5 @@ mod tests {
         });
 
         _ = speak_until_signal(rx, stop_speaking_rx, Some(config)).await;
-
     }
 }

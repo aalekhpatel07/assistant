@@ -1,20 +1,17 @@
-
-use reqwest::Url;
-use std::time::Duration;
-use bytes::Bytes;
-use anyhow::bail;
-use std::env::var;
 use crate::audio::convert_wav;
 use crate::cache::Cache;
-
+use anyhow::bail;
+use bytes::Bytes;
+use reqwest::Url;
+use std::env::var;
+use std::time::Duration;
 
 #[derive(Debug, Clone)]
 pub struct TextToSpeechClient {
     client: reqwest::Client,
     base_uri: Option<Url>,
-    cache: Option<Cache>
+    cache: Option<Cache>,
 }
-
 
 impl Default for TextToSpeechClient {
     fn default() -> Self {
@@ -25,9 +22,14 @@ impl Default for TextToSpeechClient {
 impl TextToSpeechClient {
     pub fn new() -> Self {
         Self {
-            client: reqwest::ClientBuilder::default().timeout(Duration::from_secs(60)).build().expect("failed to build reqwest Client"),
-            base_uri: var("TTS_URL").map(|v| v.parse::<Url>().ok()).unwrap_or(None),
-            cache: None
+            client: reqwest::ClientBuilder::default()
+                .timeout(Duration::from_secs(60))
+                .build()
+                .expect("failed to build reqwest Client"),
+            base_uri: var("TTS_URL")
+                .map(|v| v.parse::<Url>().ok())
+                .unwrap_or(None),
+            cache: None,
         }
     }
 
@@ -53,9 +55,9 @@ impl TextToSpeechClient {
         };
 
         let api_endpoint = format!("{}/api/tts", base_uri);
-        
-        let request =
-            self.client
+
+        let request = self
+            .client
             .get(api_endpoint)
             .query(&[("text", text)])
             .build()?;
@@ -69,11 +71,7 @@ impl TextToSpeechClient {
     }
 
     /// Attempt to convert the given text into its audio version.
-    pub async fn convert(
-        &self, 
-        text: &str, 
-    ) -> anyhow::Result<Vec<i16>>
-    {
+    pub async fn convert(&self, text: &str) -> anyhow::Result<Vec<i16>> {
         if let Some(cache) = &self.cache {
             if let Ok(Some(contents)) = cache.load_wav_file(text).await {
                 return Ok(contents);
