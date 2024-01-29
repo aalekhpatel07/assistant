@@ -1,13 +1,8 @@
 use std::io::Cursor;
 
-use cpal::{
-    traits::{DeviceTrait, HostTrait, StreamTrait},
-    SizedSample,
-};
+use crate::stream::record_audio;
 
-use crate::errors::AssistantError;
-
-pub(crate) fn convert_wav(contents: bytes::Bytes) -> Vec<i16> {
+pub(crate) fn parse_wav_from_response(contents: bytes::Bytes) -> Vec<i16> {
     let reader = Cursor::new(contents);
     let buf_reader = hound::WavReader::new(reader).unwrap();
 
@@ -25,103 +20,55 @@ pub(crate) fn convert_wav(contents: bytes::Bytes) -> Vec<i16> {
     samples.into_iter().collect::<Result<Vec<_>, _>>().unwrap()
 }
 
-pub async fn listen_until_signal<T>(
-    data_tx: tokio::sync::mpsc::UnboundedSender<T>,
-    stop_listening_rx: tokio::sync::oneshot::Receiver<()>,
-    config: Option<cpal::StreamConfig>,
-) -> Result<(), AssistantError>
-where
-    T: SizedSample + Sync + Send + 'static,
-{
-    let host = cpal::default_host();
-    let device = host
-        .default_input_device()
-        .ok_or(cpal::StreamError::DeviceNotAvailable)?;
-    let config = config.unwrap_or_else(|| {
-        device
-            .default_input_config()
-            .expect("failed to get default input config")
-            .into()
-    });
-
-    let on_input_data = move |data: &[T], _info: &cpal::InputCallbackInfo| {
-        for &sample in data {
-            if let Err(err) = data_tx.send(sample) {
-                panic!("dropped receiver somewhere?: {err:?}")
-            }
-        }
-    };
-
-    let err_fn = move |err| {
-        eprintln!("failed to read from input: {err:?}");
-    };
-
-    let stream = device.build_input_stream(&config, on_input_data, err_fn, None)?;
-    stream.play()?;
-
-    if let Err(err) = stop_listening_rx.await {
-        eprintln!("Failed to recv stop signal: {}", err);
-    }
-    Ok(())
+#[derive(Debug, Clone, Copy)]
+pub struct StreamSettings {
+    /// value used for pause detection, a pause is detected when the amplitude is less than this
+    pub silence_level: i32,
+    /// show the amplitude values on stdout (helps you to find your silence level)
+    pub show_amplitudes: bool,
+    /// seconds of silence indicating end of speech
+    pub pause_length_millis: u32,
 }
 
-pub async fn speak_until_signal<T>(
-    mut data_rx: tokio::sync::mpsc::UnboundedReceiver<T>,
-    stop_speaking_rx: tokio::sync::oneshot::Receiver<()>,
-    config: Option<cpal::StreamConfig>,
-) -> Result<(), AssistantError>
-where
-    T: SizedSample + Sync + Send + 'static + Default,
-{
-    let host = cpal::default_host();
-    let device = host
-        .default_output_device()
-        .ok_or(cpal::StreamError::DeviceNotAvailable)?;
-
-    let config = config.unwrap_or_else(|| {
-        device
-            .default_output_config()
-            .expect("failed to get default output config")
-            .into()
-    });
-    println!("speaker config: {:#?}", config);
-
-    let (no_input_tx, mut no_input_rx) = tokio::sync::mpsc::unbounded_channel();
-
-    let on_output_data = move |data: &mut [T], _info: &cpal::OutputCallbackInfo| {
-        for sample in data.iter_mut() {
-            match data_rx.try_recv() {
-                Ok(val) => {
-                    *sample = val;
-                }
-                Err(err) => match err {
-                    tokio::sync::mpsc::error::TryRecvError::Disconnected => {
-                        _ = no_input_tx.send(());
-                        return;
-                    }
-                    tokio::sync::mpsc::error::TryRecvError::Empty => {
-                        *sample = T::default();
-                    }
-                },
-            }
-        }
-    };
-
-    let err_fn = move |err| {
-        eprintln!("failed to write to output: {err:?}");
-    };
-
-    let stream = device.build_output_stream(&config, on_output_data, err_fn, None)?;
-    stream.play()?;
-
-    tokio::select! {
-        _ = stop_speaking_rx => {
-
-        },
-        _ = no_input_rx.recv() => {
-
+impl StreamSettings {
+    /// Create a new configuration for a mic stream
+    pub fn new(silence_level: i32, show_amplitudes: bool, pause_length_millis: u32) -> Self {
+        Self {
+            silence_level,
+            show_amplitudes,
+            pause_length_millis,
         }
     }
-
-    Ok(())
 }
+
+impl Default for StreamSettings {
+    fn default() -> Self {
+        Self {
+            silence_level: 200,
+            show_amplitudes: true,
+            pause_length_millis: 1000,
+        }
+    }
+}
+
+
+pub fn transcribe(config: StreamSettings) -> anyhow::Result<Vec<i16>> {
+    let pause_length_ms = (config.pause_length_millis / 1000) as f32;
+    record_audio(
+        config.silence_level,
+        config.show_amplitudes,
+        pause_length_ms
+    )
+}
+
+pub fn listen_on_microphone() -> anyhow::Result<Vec<i16>> {
+    transcribe(Default::default())
+}
+
+// pub(crate) async fn parse_audio() {
+//     let mut microphone = Microphone::default();
+//     let mut stream: MicrophoneStream<'_, fon::mono::Mono32> = microphone.record().await;
+//     let foo = stream.collect::<Vec<_>>();
+    
+//     // stream.;
+// }

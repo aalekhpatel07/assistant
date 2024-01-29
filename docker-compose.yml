@@ -8,6 +8,7 @@ services:
     restart: unless-stopped
     volumes:
       - model_data:/root/.local/share/tts
+      - ./docker/coqui-tts/server:/root/TTS/server
     ports:
       - "5002:5002"
     deploy:
@@ -26,6 +27,26 @@ services:
     volumes:
       - cache:/data
 
+  stt:
+    image: onerahmet/openai-whisper-asr-webservice:latest-gpu
+    restart: unless-stopped
+    ports:
+      - "9003:9000"
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: 1
+              capabilities: [gpu]
+    environment:
+      - ASR_MODEL=base
+      - ASR_ENGINE=openai_whisper
+    volumes:
+      - stt-cache:/root/.cache/whisper
+
 volumes:
   model_data:
   cache:
+  stt-cache:
+

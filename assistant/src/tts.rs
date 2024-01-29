@@ -1,5 +1,5 @@
-use crate::audio::convert_wav;
 use crate::cache::Cache;
+use crate::parse_wav_from_response;
 use anyhow::bail;
 use bytes::Bytes;
 use reqwest::Url;
@@ -79,7 +79,7 @@ impl TextToSpeechClient {
         }
 
         let contents = self.get_wav(text).await?;
-        let data = convert_wav(contents);
+        let data = parse_wav_from_response(contents);
 
         if let Some(cache) = &self.cache {
             if let Err(err) = cache.store_wav_file(text, &data).await {
