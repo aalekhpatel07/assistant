@@ -1,3 +1,4 @@
+use bytes::Bytes;
 use redis::AsyncCommands;
 
 #[derive(Debug, Clone)]
@@ -18,7 +19,7 @@ impl Cache {
         })
     }
 
-    fn serialize_into_bytes(contents: &[i16]) -> impl Iterator<Item = u8> + '_ {
+    fn serialize_into_bytes(contents: &[u8]) -> impl Iterator<Item = u8> + '_ {
         contents.iter().flat_map(|v| v.to_le_bytes())
     }
     fn deserialize_from_bytes(contents: &[u8]) -> impl Iterator<Item = i16> + '_ {
@@ -30,7 +31,7 @@ impl Cache {
     pub async fn store_wav_file(
         &self,
         text: &str,
-        contents: &[i16],
+        contents: &Bytes,
     ) -> Result<(), redis::RedisError> {
         let key = format!("{}{}", SPEECH_PREFIX, text).as_bytes().to_owned();
         let mut conn = self.client.get_async_connection().await?;
@@ -40,7 +41,7 @@ impl Cache {
         Ok(())
     }
 
-    pub async fn load_wav_file(&self, text: &str) -> Result<Option<Vec<i16>>, redis::RedisError> {
+    pub async fn load_wav_file(&self, text: &str) -> Result<Option<Vec<u8>>, redis::RedisError> {
         let key = format!("{}{}", SPEECH_PREFIX, text).as_bytes().to_owned();
         let mut conn = self.client.get_async_connection().await?;
 
@@ -48,6 +49,6 @@ impl Cache {
             return Ok(None);
         };
 
-        Ok(Some(Self::deserialize_from_bytes(&value).collect()))
+        Ok(Some(value))
     }
 }

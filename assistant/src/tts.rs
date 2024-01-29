@@ -71,18 +71,18 @@ impl TextToSpeechClient {
     }
 
     /// Attempt to convert the given text into its audio version.
-    pub async fn convert(&self, text: &str) -> anyhow::Result<Vec<i16>> {
+    pub async fn convert(&self, text: &str) -> anyhow::Result<(cpal::StreamConfig, Vec<i16>)> {
         if let Some(cache) = &self.cache {
             if let Ok(Some(contents)) = cache.load_wav_file(text).await {
-                return Ok(contents);
+                return Ok(parse_wav_from_response(&contents));
             }
         }
 
         let contents = self.get_wav(text).await?;
-        let data = parse_wav_from_response(contents);
+        let data = parse_wav_from_response(&contents);
 
         if let Some(cache) = &self.cache {
-            if let Err(err) = cache.store_wav_file(text, &data).await {
+            if let Err(err) = cache.store_wav_file(text, &contents).await {
                 eprintln!("couldn't cache the transcription this time, whoops: {err}");
             }
         }

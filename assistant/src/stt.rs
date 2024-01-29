@@ -1,7 +1,5 @@
 use reqwest;
 use reqwest::Url;
-use tokio::sync::mpsc::{unbounded_channel, UnboundedReceiver};
-use tokio::sync::oneshot::{channel, Sender};
 use std::time::Duration;
 use std::env::var;
 

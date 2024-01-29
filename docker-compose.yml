@@ -8,7 +8,7 @@ services:
     restart: unless-stopped
     volumes:
       - model_data:/root/.local/share/tts
-      - ./docker/coqui-tts/server:/root/TTS/server
+        # - ./docker/coqui-tts/server:/root/TTS/server
     ports:
       - "5002:5002"
     deploy:

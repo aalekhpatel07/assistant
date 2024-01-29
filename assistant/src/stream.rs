@@ -10,7 +10,7 @@ use std::{
     sync::mpsc::{channel, Receiver},
     time::Instant,
 };
-use tracing::{error, warn, info, trace};
+// use tracing::{error, warn, info, trace};
 
 use cpal::{
     traits::{DeviceTrait, HostTrait, StreamTrait},
@@ -62,24 +62,24 @@ impl StreamConfig {
 /// # Recording Audio
 /// This function handles the audio recording process, parameters are obtained from `ds_transcriber::transcriber::StreamSettings`
 ///
-
 pub fn record_audio(
     silence_level: i32,
     show_amplitude: bool,
     pause_length: f32,
-) -> Result<Vec<i16>> {
+) -> Result<(cpal::StreamConfig, Vec<i16>)> {
     let config = StreamConfig::new(silence_level)?;
     let (sound_sender, sound_receiver) = channel();
     let device = config.device();
     let stream_config = config.supported_config().config();
+    println!("record_audio stream_config: {:?}", stream_config);
     let stream = device.build_input_stream(
         &stream_config,
         move |data: &[f32], _: &_| {
-            if let Err(e) = sound_sender.send(data.to_owned()) {
-                error!("{}", e);
+            if let Err(_e) = sound_sender.send(data.to_owned()) {
+                // error!("{}", e);
             }
         },
-        move |err| error!("Stream read error: {}", err),
+        move |_err| {},
         None
     )?;
 
@@ -91,14 +91,15 @@ pub fn record_audio(
         show_amplitude,
         pause_length,
     )?;
-    
+
     let audio_buf = denoised_stream
         .into_iter()
         .map(|a| (a * i16::MAX as f32) as i16)
         .collect::<Vec<_>>();
 
-    Ok(audio_buf)
+    Ok((stream_config, audio_buf))
 }
+
 
 fn start(
     sound_receiver: &Receiver<Vec<f32>>,
@@ -108,6 +109,7 @@ fn start(
 ) -> Result<Vec<f32>> {
     let mut silence_start = None;
     let mut sound_from_start_till_pause = vec![];
+
     loop {
         let small_sound_chunk = sound_receiver.recv()?;
         sound_from_start_till_pause.extend(&small_sound_chunk);
@@ -115,7 +117,7 @@ fn start(
         let max_amplitude = sound_as_ints.clone().max().unwrap_or(0);
         let min_amplitude = sound_as_ints.clone().min().unwrap_or(0);
         if show_amplitude {
-            println!("Min is {}, Max is {}", min_amplitude, max_amplitude);
+            eprintln!("Min is {}, Max is {}", min_amplitude, max_amplitude);
         }
         let silence_detected = max_amplitude < silence_level && min_amplitude > silence_level.neg();
         if silence_detected {
@@ -125,7 +127,7 @@ fn start(
                     if s.elapsed().as_secs_f32() > pause_length {
                         #[cfg(feature = "denoise")]
                         {
-                            trace!("denoising stream");
+                            // trace!("denoising stream");
                             return Ok(denoise(sound_from_start_till_pause));
                         }
                         #[cfg(not(feature = "denoise"))]
