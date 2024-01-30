@@ -11,9 +11,11 @@ bytes = "1.5.0"
 cpal = "0.15.2"
 hound = "3.5.1"
 nnnoiseless = { version = "0.5.1", optional = true }
+openai-api-rs = "4.0.5"
 # openai = "1.0.0-alpha.13"
 redis = { version = "0.24.0", features = ["tokio-comp"] }
-reqwest = "0.11.23"
+reqwest = { version = "0.11.23", features = ["multipart"] }
+tokio = { version = "1", features = ["full"] }
 
 [dev-dependencies]
 tokio = { version = "1", features = ["full"] }
@@ -21,8 +23,3 @@ tokio = { version = "1", features = ["full"] }
 [features]
 default = []
 denoise = ["dep:nnnoiseless"]
-
-
-[[bin]]
-path = "src/bin/feedback.rs"
-name = "feedback"

@@ -1,5 +1,7 @@
-use std::{io::Cursor, time::Duration};
+use std::{io::{BufWriter, Cursor}, time::Duration};
+use bytes::Bytes;
 use cpal::{traits::{DeviceTrait, HostTrait, StreamTrait}, SampleRate, StreamConfig};
+use hound::SampleFormat;
 
 use crate::stream::record_audio;
 
@@ -9,12 +11,12 @@ pub(crate) fn parse_wav_from_response(contents: &[u8]) -> (StreamConfig, Vec<i16
 
     let spec = buf_reader.spec();
 
-    eprintln!("spec: {:#?}", spec);
-    eprintln!(
-        "duration: {:.3}s",
-        buf_reader.duration() as f32 / buf_reader.spec().sample_rate as f32
-    );
-    eprintln!("len: {:}", buf_reader.len());
+    // eprintln!("spec: {:#?}", spec);
+    // eprintln!(
+    //     "duration: {:.3}s",
+    //     buf_reader.duration() as f32 / buf_reader.spec().sample_rate as f32
+    // );
+    // eprintln!("len: {:}", buf_reader.len());
 
     let samples = buf_reader.into_samples::<i16>();
 
@@ -26,6 +28,33 @@ pub(crate) fn parse_wav_from_response(contents: &[u8]) -> (StreamConfig, Vec<i16
         }, 
         samples.into_iter().collect::<Result<Vec<_>, _>>().unwrap()
     )
+}
+
+pub fn build_wav_from_audio(
+    config: StreamConfig, 
+    samples: &[i16]
+) -> anyhow::Result<Bytes> {
+    let output = Vec::with_capacity(samples.len());
+    let mut buf_writer = Cursor::new(output);
+    let mut wav_writer = hound::WavWriter::new(
+        &mut buf_writer, 
+        hound::WavSpec {
+            channels: config.channels,
+            sample_format: SampleFormat::Int,
+            sample_rate: config.sample_rate.0,
+            bits_per_sample: 16
+        }
+    )?;
+
+    for &sample in samples {
+        wav_writer.write_sample(sample)?;
+    }
+
+    wav_writer.flush()?;
+    wav_writer.finalize()?;
+    
+    Ok(buf_writer.into_inner().into())
+
 }
 
 #[derive(Debug, Clone, Copy)]
@@ -52,7 +81,7 @@ impl StreamSettings {
 impl Default for StreamSettings {
     fn default() -> Self {
         Self {
-            silence_level: 200,
+            silence_level: 300,
             show_amplitudes: true,
             pause_length: Duration::from_secs(1),
         }

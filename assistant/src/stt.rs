@@ -1,16 +1,8 @@
+use anyhow::bail;
 use reqwest;
 use reqwest::Url;
 use std::time::Duration;
 use std::env::var;
-
-
-mod listener {
-    use std::borrow::Borrow;
-    use std::future::{poll_fn, Pending, Ready};
-    use std::task::Poll;
-
-}
-
 
 
 #[derive(Debug)]
@@ -20,7 +12,7 @@ pub struct SpeechToTextClient {
 }
 
 impl SpeechToTextClient {
-    pub async fn new() -> Self {
+    pub fn new() -> Self {
 
         Self {
             client: reqwest::ClientBuilder::default()
@@ -39,5 +31,51 @@ impl SpeechToTextClient {
             base_uri: Some(base_uri),
             ..self
         })
+    }
+
+    pub async fn transcribe(
+        &self, 
+        audio_data: bytes::Bytes,
+        language: Option<&str>,
+    ) -> anyhow::Result<String> {
+        let Some(ref base_uri) = self.base_uri else {
+            bail!("No base_uri provided");
+        };
+        // eprintln!("base_uri: {}", base_uri);
+        let api_endpoint = format!("{}asr", base_uri);
+
+        let part = reqwest::multipart::Part::stream(audio_data).file_name("dummy.wav").mime_str("audio/wav")?;
+        let form = reqwest::multipart::Form::new().part("audio_file", part);
+
+        let mut query = vec![
+            ("encode", "true"), 
+            ("task", "transcribe"),
+            ("word_timestamps", "false"),
+            ("output", "txt")
+        ];
+
+        if let Some(lang) = language {
+            query.push(("language", lang));
+        }
+
+        let request = self
+        .client
+        .post(api_endpoint)
+        .query(&query)
+        .multipart(form)
+        .build()?;
+
+        // eprintln!("stt request: {:#?}", request);
+        match self.client.execute(request)
+        .await {
+            Ok(resp) => {
+                let contents = resp.bytes().await?;
+                Ok(String::from_utf8_lossy(&contents).trim().to_string())
+            },
+            Err(err) => {
+                eprintln!("Failed to get response: {err}");
+                bail!("{err}")
+            }
+        }
     }
 }
