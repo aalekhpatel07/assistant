@@ -1,6 +1,19 @@
 version: "3.8"
 services:
-  tts: # text to speech inference server.
+  congo:
+    image: congo
+    build:
+      context: .
+      dockerfile: docker/driver.Dockerfile
+    restart: unless-stopped
+    environment:
+      - COQUI_BASE_URL="http://stt:5002"
+      - REDIS_ADDR="redis:6379"
+      - WHISPER_BASE_URL="http://tts:9000"
+      - LLAMA_PHI_BASE_URL="http://llama:8080"
+    privileged: true
+
+  stt: # text to speech inference server.
     image: coqui-ai-tts
     build:
       context: docker/coqui-tts
@@ -9,7 +22,7 @@ services:
     volumes:
       - model_data:/root/.local/share/tts
     ports:
-      - "5002:5002"
+      - 5002
     deploy:
       resources:
         reservations:
@@ -22,15 +35,15 @@ services:
     image: redis:6.2-alpine
     restart: unless-stopped
     ports:
-      - '6380:6379'
+      - 6379
     volumes:
       - cache:/data
 
-  stt:
+  tts:
     image: onerahmet/openai-whisper-asr-webservice:latest-gpu
     restart: unless-stopped
     ports:
-      - "9003:9000"
+      - 9000
     deploy:
       resources:
         reservations:
@@ -58,7 +71,7 @@ services:
               capabilities: [gpu, compute, utility]
     restart: unless-stopped
     ports:
-      - 5001:8080
+      - 8080
     volumes:
       - ./docker/llama:/app
       - ./docker/llama/models:/models
