@@ -45,6 +45,30 @@ services:
     volumes:
       - stt-cache:/root/.cache/whisper
 
+
+  llama:
+    build:
+      context: .
+      dockerfile: docker/llama.Dockerfile
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: all
+              capabilities: [gpu, compute, utility]
+    restart: unless-stopped
+    ports:
+      - 5001:8080
+    volumes:
+      - ./docker/llama:/app
+      - ./docker/llama/models:/models
+    ulimits:
+      memlock:
+        soft: -1
+        hard: -1
+    command: python3 -m llama_cpp.server --config_file llama_config.json
+
 volumes:
   model_data:
   cache:

@@ -1,0 +1,16 @@
+{
+    "host": "0.0.0.0",
+    "port": 8080,
+    "models": [
+        {
+            "model": "/models/phi-2.q2_k.gguf",
+            "model_alias": "phi2",
+            "chat_format": "chatml",
+            "n_gpu_layers": 6,
+            "offload_kqv": true,
+            "n_threads": 12,
+            "n_batch": 512,
+            "n_ctx": 2048
+        }
+    ]
+}
