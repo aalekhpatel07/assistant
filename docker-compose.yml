@@ -1,6 +1,6 @@
 version: "3.8"
 services:
-  tts: # speech to text inference server.
+  tts: # text to speech inference server.
     image: coqui-ai-tts
     build:
       context: docker/coqui-tts
@@ -8,7 +8,6 @@ services:
     restart: unless-stopped
     volumes:
       - model_data:/root/.local/share/tts
-        # - ./docker/coqui-tts/server:/root/TTS/server
     ports:
       - "5002:5002"
     deploy:
