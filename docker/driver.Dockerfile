@@ -2,7 +2,7 @@ FROM golang:bullseye
 
 ENV DEBIAN_FRONTEND noninteractive
 RUN apt-get update -y
-RUN apt-get install -y --no-install-recommends alsa-utils libsndfile1-dev libportaudio2 libasound-dev portaudio19-dev
+RUN apt-get install -y --no-install-recommends alsa-utils libsndfile1-dev libportaudio2 libasound-dev portaudio19-dev pulseaudio
 RUN apt-get clean
 
 WORKDIR /app

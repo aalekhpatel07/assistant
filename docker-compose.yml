@@ -12,6 +12,8 @@ services:
       - WHISPER_BASE_URL="http://tts:9000"
       - LLAMA_PHI_BASE_URL="http://llama:8080"
     privileged: true
+    devices:
+      - /dev/snd:/dev/snd
 
   stt: # text to speech inference server.
     image: coqui-ai-tts
